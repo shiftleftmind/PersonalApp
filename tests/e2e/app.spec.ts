@@ -27,16 +27,21 @@ test.describe('Personal Hub End-to-End Application Workflow', () => {
     await expect(page.getByText(/German Alphabet & Phonetics Guide/i)).toBeVisible();
     await expect(page.getByText('der Apfel')).toBeVisible();
 
+    // Switch to Schritte A1-B1 Units tab
+    await page.getByRole('button', { name: /2\. Schritte A1–B1 Units/i }).click();
+    await expect(page.getByText(/Schritte Plus Neu A1\.1 & A1\.2/i)).toBeVisible();
+    await expect(page.getByText(/Guten Tag & Kennenlernen/i)).toBeVisible();
+
     // Switch to Flashcards tab
-    await page.getByRole('button', { name: /2\. Flashcards/i }).click();
+    await page.getByRole('button', { name: /3\. Flashcards/i }).click();
     await expect(page.getByText('Listen Pronunciation')).toBeVisible();
 
     // Switch to Grammar tab
-    await page.getByRole('button', { name: /3\. Grammar/i }).click();
+    await page.getByRole('button', { name: /4\. Grammar/i }).click();
     await expect(page.getByRole('button', { name: /ગુજરાતી/i })).toBeVisible();
 
     // Switch to QA drills tab
-    await page.getByRole('button', { name: /4\. QA/i }).click();
+    await page.getByRole('button', { name: /5\. QA/i }).click();
     await expect(page.getByText(/Erwartetes Verhalten/i)).toBeVisible();
 
     // 4. Playwright Lab Module checks

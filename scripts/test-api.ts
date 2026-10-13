@@ -53,6 +53,16 @@ async function testApi() {
     }).then((r) => r.json());
     console.log('✓ Error Log Added:', errLog.wrong_sentence, '->', errLog.corrected_sentence);
 
+    // 6b. German Lessons (Schritte A1-B1)
+    const lessons = await fetch(`${baseUrl}/api/german/lessons`).then((r) => r.json());
+    console.log('✓ German Lessons Count (A0-B1):', lessons.length);
+    const a11Lessons = await fetch(`${baseUrl}/api/german/lessons?stage=A1.1`).then((r) => r.json());
+    console.log('✓ Schritte A1.1 Lessons Count:', a11Lessons.length);
+
+    // 6c. Textbook Files Scanner
+    const textbookFiles = await fetch(`${baseUrl}/api/german/textbook-files`).then((r) => r.json());
+    console.log('✓ Textbook Files Found:', textbookFiles.files?.length, 'files in', textbookFiles.folderPath);
+
     // 7. Goethe B1 Mock Writing Grading
     const grade = await fetch(`${baseUrl}/api/german/grade-exam`, {
       method: 'POST',

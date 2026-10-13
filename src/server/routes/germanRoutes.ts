@@ -227,4 +227,24 @@ router.get('/textbook-files', (req: Request, res: Response) => {
   }
 });
 
+// GET course lessons (Schritte Plus Neu A1-B1)
+router.get('/lessons', (req: Request, res: Response) => {
+  try {
+    const { stage } = req.query;
+    let query = 'SELECT * FROM german_lessons WHERE 1=1';
+    const params: any[] = [];
+
+    if (stage && stage !== 'all') {
+      query += ' AND stage = ?';
+      params.push(stage);
+    }
+
+    query += ' ORDER BY lesson_number ASC';
+    const lessons = db.prepare(query).all(...params);
+    res.json(lessons);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 export default router;

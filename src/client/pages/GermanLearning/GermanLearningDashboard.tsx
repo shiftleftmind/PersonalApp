@@ -59,9 +59,30 @@ interface ErrorLogItem {
   next_review_at: string;
 }
 
+interface LessonItem {
+  id: number;
+  stage: string;
+  lesson_number: number;
+  title_de: string;
+  title_en: string;
+  title_gu: string;
+  textbook_source: string;
+  grammar_focus_de: string;
+  grammar_focus_en: string;
+  grammar_focus_gu: string;
+  redemittel_de: string;
+  redemittel_en: string;
+  redemittel_gu: string;
+  drill_question: string;
+  drill_options: string;
+  drill_correct_idx: number;
+  drill_explanation_en: string;
+  drill_explanation_gu: string;
+}
+
 export const GermanLearningDashboard: React.FC = () => {
   const [activeSection, setActiveSection] = useState<
-    'alphabets' | 'vocab' | 'grammar' | 'qa-drills' | 'skills' | 'error-log' | 'mock-exam' | 'overview'
+    'alphabets' | 'lessons' | 'vocab' | 'grammar' | 'qa-drills' | 'skills' | 'error-log' | 'mock-exam' | 'overview'
   >('alphabets');
 
   const { speakGerman, startListening, isListening, transcript } = useSpeech();
@@ -70,6 +91,13 @@ export const GermanLearningDashboard: React.FC = () => {
   const [alphabetsList, setAlphabetsList] = useState<AlphabetItem[]>([]);
   const [alphaCategory, setAlphaCategory] = useState<string>('all');
   const [alphaLang, setAlphaLang] = useState<'en' | 'gu'>('gu');
+
+  // Lessons State (Schritte Plus Neu A1-B1)
+  const [lessonsList, setLessonsList] = useState<LessonItem[]>([]);
+  const [selectedLessonStage, setSelectedLessonStage] = useState<string>('all');
+  const [lessonLang, setLessonLang] = useState<'en' | 'gu'>('gu');
+  const [activeDrillAnswers, setActiveDrillAnswers] = useState<{ [lessonId: number]: number }>({});
+  const [activeDrillResults, setActiveDrillResults] = useState<{ [lessonId: number]: { isCorrect: boolean; feedback: string } }>({});
 
   // Vocab State
   const [vocabList, setVocabList] = useState<VocabItem[]>([]);
@@ -180,6 +208,67 @@ export const GermanLearningDashboard: React.FC = () => {
     }
   };
 
+  // Fetch Course Lessons (Schritte A1-B1)
+  const fetchLessons = async () => {
+    try {
+      const res = await fetch('/api/german/lessons');
+      const data = await res.json();
+      setLessonsList(data);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSelectDrillOption = (lessonId: number, optionIdx: number) => {
+    setActiveDrillAnswers((prev) => ({ ...prev, [lessonId]: optionIdx }));
+  };
+
+  const handleCheckDrill = (lesson: LessonItem) => {
+    const selectedIdx = activeDrillAnswers[lesson.id];
+    if (selectedIdx === undefined) return;
+
+    const isCorrect = selectedIdx === lesson.drill_correct_idx;
+    const feedback = isCorrect
+      ? (lessonLang === 'gu' ? `ખૂબ સરસ! સાચો જવાબ. ${lesson.drill_explanation_gu}` : `Richtig! Correct! ${lesson.drill_explanation_en}`)
+      : (lessonLang === 'gu' ? `ખોટો જવાબ. ${lesson.drill_explanation_gu}` : `Nicht ganz richtig. ${lesson.drill_explanation_en}`);
+
+    setActiveDrillResults((prev) => ({
+      ...prev,
+      [lesson.id]: { isCorrect, feedback }
+    }));
+
+    if (!isCorrect) {
+      let options: string[] = [];
+      try {
+        options = JSON.parse(lesson.drill_options);
+      } catch {
+        options = [];
+      }
+      const wrongChoice = options[selectedIdx] || 'Falsche Antwort';
+      const correctChoice = options[lesson.drill_correct_idx] || 'Richtige Antwort';
+      logMistake(
+        `${lesson.drill_question} ➔ [Ausgewählt: ${wrongChoice}]`,
+        `${lesson.drill_question} ➔ [Richtig: ${correctChoice}]`,
+        `${lesson.title_de} (${lesson.textbook_source})`,
+        lesson.drill_explanation_en,
+        lesson.drill_explanation_gu
+      );
+    }
+  };
+
+  const handleResetDrill = (lessonId: number) => {
+    setActiveDrillAnswers((prev) => {
+      const next = { ...prev };
+      delete next[lessonId];
+      return next;
+    });
+    setActiveDrillResults((prev) => {
+      const next = { ...prev };
+      delete next[lessonId];
+      return next;
+    });
+  };
+
   // Fetch Vocab & Errors
   const fetchVocab = async () => {
     try {
@@ -213,6 +302,7 @@ export const GermanLearningDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchAlphabets();
+    fetchLessons();
     fetchVocab();
     fetchErrorLog();
     fetchTextbookFiles();
@@ -304,6 +394,11 @@ export const GermanLearningDashboard: React.FC = () => {
     return item.category === alphaCategory;
   });
 
+  const filteredLessons = lessonsList.filter((item) => {
+    if (selectedLessonStage === 'all') return true;
+    return item.stage === selectedLessonStage;
+  });
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
@@ -324,12 +419,13 @@ export const GermanLearningDashboard: React.FC = () => {
         <div className="flex items-center gap-1.5 overflow-x-auto bg-slate-900 border border-slate-800 p-1.5 rounded-xl">
           {[
             { id: 'alphabets', label: '1. Alphabet & Phonetics (A0)' },
-            { id: 'vocab', label: '2. Flashcards (SRS)' },
-            { id: 'grammar', label: '3. Grammar (Dual-Lang)' },
-            { id: 'qa-drills', label: '4. QA / Testing Drills' },
-            { id: 'skills', label: '5. 4-Skill Practice' },
-            { id: 'error-log', label: '6. Error Log' },
-            { id: 'mock-exam', label: '7. Goethe B1 Mock Exam' },
+            { id: 'lessons', label: '2. Schritte A1–B1 Units' },
+            { id: 'vocab', label: '3. Flashcards (SRS)' },
+            { id: 'grammar', label: '4. Grammar (Dual-Lang)' },
+            { id: 'qa-drills', label: '5. QA / Testing Drills' },
+            { id: 'skills', label: '6. 4-Skill Practice' },
+            { id: 'error-log', label: '7. Error Log (SRS)' },
+            { id: 'mock-exam', label: '8. Goethe B1 Mock Exam' },
             { id: 'overview', label: 'Roadmap & Textbook' },
           ].map((tab) => (
             <button
@@ -451,7 +547,297 @@ export const GermanLearningDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* 2. Vocabulary & Flashcard Section */}
+      {/* 2. Schritte Plus Neu A1-B1 Course Units */}
+      {activeSection === 'lessons' && (
+        <div className="space-y-6">
+          {/* Top Bar with Filters & Language Selection */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+            <div>
+              <h3 className="font-bold text-base text-white flex items-center gap-2">
+                <BookOpen size={18} className="text-emerald-400" />
+                Schritte Plus Neu A1.1 &amp; A1.2 ➔ CEFR A2 ➔ Goethe B1 Interactive Units
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                21 structured lessons from A0 phonics and Hueber Verlag textbook units up to Berlin QA workflows and Goethe B1 exam drills.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Stage Filter */}
+              <select
+                value={selectedLessonStage}
+                onChange={(e) => setSelectedLessonStage(e.target.value)}
+                className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none"
+              >
+                <option value="all">All Stages (21 Units)</option>
+                <option value="A0">Stage 0: A0 Alphabet &amp; Phonetik (Unit 0)</option>
+                <option value="A1.1">Stage 1: Schritte A1.1 (Units 1–7)</option>
+                <option value="A1.2">Stage 2: Schritte A1.2 (Units 8–14)</option>
+                <option value="A2">Stage 3: CEFR A2 Berlin Life &amp; QA (Units 15–17)</option>
+                <option value="B1">Stage 4: CEFR B1 Goethe Mastery (Units 18–20)</option>
+              </select>
+
+              {/* Language Toggle */}
+              <div className="flex items-center bg-slate-950 border border-slate-800 rounded-lg p-1">
+                <button
+                  onClick={() => setLessonLang('gu')}
+                  className={`px-2.5 py-1 rounded text-xs font-semibold transition ${
+                    lessonLang === 'gu' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  ગુજરાતી
+                </button>
+                <button
+                  onClick={() => setLessonLang('en')}
+                  className={`px-2.5 py-1 rounded text-xs font-semibold transition ${
+                    lessonLang === 'en' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  English
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Textbook Alignment Banner */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-950/70 border border-emerald-800 flex items-center justify-center text-emerald-400 shrink-0">
+                <FileText size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-white">Textbook Reference: Schritte Plus Neu A1.1 + A1.2 (Hueber Verlag)</span>
+                  {textbookInfo && textbookInfo.files.length > 0 && (
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800">
+                      ✓ Synchronized with PDF
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {textbookInfo && textbookInfo.files.some((f) => f.name.toLowerCase().includes('schritte'))
+                    ? `Verified file "${textbookInfo.files.find((f) => f.name.toLowerCase().includes('schritte'))?.name}" (~${(textbookInfo.files.find((f) => f.name.toLowerCase().includes('schritte'))?.size / (1024 * 1024)).toFixed(1)} MB) loaded. Units 1–14 directly correspond to textbook Lektionen 1–14.`
+                    : 'Place your textbook PDF in reference_materials/textbook/ for automated syllabus indexing.'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveSection('overview')}
+              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 bg-slate-950 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-lg whitespace-nowrap transition"
+            >
+              View 30-Week Roadmap
+            </button>
+          </div>
+
+          {/* Lessons Grid */}
+          <div className="space-y-4">
+            {filteredLessons.map((lesson) => {
+              const selectedIdx = activeDrillAnswers[lesson.id];
+              const drillResult = activeDrillResults[lesson.id];
+              let options: string[] = [];
+              try {
+                options = JSON.parse(lesson.drill_options);
+              } catch {
+                options = [];
+              }
+
+              return (
+                <div
+                  key={lesson.id}
+                  className="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 space-y-4 transition shadow-sm"
+                >
+                  {/* Unit Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2.5 py-1 rounded-lg bg-slate-800 font-mono text-xs font-bold text-white">
+                        Lektion {lesson.lesson_number}
+                      </span>
+                      <span
+                        className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
+                          lesson.stage === 'A0'
+                            ? 'bg-slate-800/80 text-slate-300 border-slate-700'
+                            : lesson.stage === 'A1.1'
+                            ? 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
+                            : lesson.stage === 'A1.2'
+                            ? 'bg-blue-950/80 text-blue-300 border-blue-800'
+                            : lesson.stage === 'A2'
+                            ? 'bg-purple-950/80 text-purple-300 border-purple-800'
+                            : 'bg-amber-950/80 text-amber-300 border-amber-800'
+                        }`}
+                      >
+                        {lesson.stage}
+                      </span>
+                      <h4 className="font-extrabold text-white text-base">{lesson.title_de}</h4>
+                      <span className="text-xs text-amber-300/90 font-medium">
+                        — {lessonLang === 'gu' ? lesson.title_gu : lesson.title_en}
+                      </span>
+                    </div>
+
+                    <span className="text-[11px] text-slate-400 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 self-start sm:self-auto font-medium">
+                      {lesson.textbook_source}
+                    </span>
+                  </div>
+
+                  {/* Unit Content: 2-Column Layout */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    {/* Left: Grammar Focus & Key Redemittel */}
+                    <div className="space-y-3">
+                      {/* Grammar Focus */}
+                      <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800/80 space-y-1.5">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 block">
+                          Grammatik-Schwerpunkt (Grammar Blueprint)
+                        </span>
+                        <p className="text-xs text-white font-medium leading-relaxed">
+                          {lesson.grammar_focus_de}
+                        </p>
+                        <p className="text-xs text-slate-400 italic">
+                          {lessonLang === 'gu' ? lesson.grammar_focus_gu : lesson.grammar_focus_en}
+                        </p>
+                      </div>
+
+                      {/* Redemittel (Key Phrases) */}
+                      <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800/80 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400">
+                            Wichtige Redemittel (Key Expressions)
+                          </span>
+                          <button
+                            onClick={() => speakGerman(lesson.redemittel_de)}
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 bg-slate-900 px-2 py-0.5 rounded-md border border-slate-800 transition"
+                          >
+                            <Volume2 size={13} />
+                            <span>Audio</span>
+                          </button>
+                        </div>
+                        <p className="text-xs font-bold text-white tracking-wide">
+                          "{lesson.redemittel_de}"
+                        </p>
+                        <p className="text-xs text-amber-300 font-medium">
+                          {lessonLang === 'gu' ? lesson.redemittel_gu : lesson.redemittel_en}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right: Interactive Quick Check Drill */}
+                    <div className="bg-slate-950/80 p-3.5 rounded-xl border border-slate-800/80 flex flex-col justify-between space-y-3">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-blue-400 flex items-center gap-1">
+                            <Sparkles size={12} />
+                            Quick-Check Drill (Übung)
+                          </span>
+                          {drillResult && (
+                            <span
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                drillResult.isCorrect
+                                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+                                  : 'bg-rose-950 text-rose-300 border border-rose-800'
+                              }`}
+                            >
+                              {drillResult.isCorrect ? '✓ Richtig' : '✗ Überprüfen'}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs font-semibold text-white">
+                          {lesson.drill_question}
+                        </p>
+
+                        {/* Options */}
+                        <div className="space-y-1.5 pt-1">
+                          {options.map((opt, optIdx) => {
+                            const isChosen = selectedIdx === optIdx;
+                            const isAnswerChecked = !!drillResult;
+                            const isCorrectOpt = optIdx === lesson.drill_correct_idx;
+
+                            let optStyle = 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700';
+                            if (isChosen && !isAnswerChecked) {
+                              optStyle = 'bg-emerald-950/70 border-emerald-600 text-white font-medium';
+                            } else if (isAnswerChecked) {
+                              if (isCorrectOpt) {
+                                optStyle = 'bg-emerald-950 border-emerald-500 text-emerald-200 font-bold';
+                              } else if (isChosen && !isCorrectOpt) {
+                                optStyle = 'bg-rose-950 border-rose-500 text-rose-200 font-bold';
+                              } else {
+                                optStyle = 'bg-slate-900/60 border-slate-800/60 text-slate-500';
+                              }
+                            }
+
+                            return (
+                              <button
+                                key={optIdx}
+                                disabled={isAnswerChecked}
+                                onClick={() => handleSelectDrillOption(lesson.id, optIdx)}
+                                className={`w-full text-left p-2 rounded-lg text-xs border transition flex items-center justify-between ${optStyle}`}
+                              >
+                                <span>{opt}</span>
+                                {isAnswerChecked && isCorrectOpt && <Check size={14} className="text-emerald-400" />}
+                                {isAnswerChecked && isChosen && !isCorrectOpt && <X size={14} className="text-rose-400" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Drill Action / Feedback */}
+                      <div>
+                        {drillResult ? (
+                          <div className="space-y-2 pt-1">
+                            <div
+                              className={`p-2.5 rounded-lg border text-xs leading-relaxed ${
+                                drillResult.isCorrect
+                                  ? 'bg-emerald-950/50 border-emerald-800 text-emerald-300'
+                                  : 'bg-rose-950/50 border-rose-800 text-rose-300'
+                              }`}
+                            >
+                              <div className="flex items-start gap-1.5">
+                                {drillResult.isCorrect ? (
+                                  <CheckCircle size={14} className="text-emerald-400 shrink-0 mt-0.5" />
+                                ) : (
+                                  <AlertTriangle size={14} className="text-rose-400 shrink-0 mt-0.5" />
+                                )}
+                                <div>
+                                  <span className="font-semibold block">{drillResult.feedback}</span>
+                                  {!drillResult.isCorrect && (
+                                    <span className="text-[10px] text-slate-400 block mt-1">
+                                      * Fehler automatisch im SRS Error Log gespeichert.
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleResetDrill(lesson.id)}
+                              className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 font-medium pt-1"
+                            >
+                              <RotateCcw size={12} />
+                              <span>Drill wiederholen (Retry)</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            disabled={selectedIdx === undefined}
+                            onClick={() => handleCheckDrill(lesson)}
+                            className={`w-full py-2 rounded-lg text-xs font-semibold transition ${
+                              selectedIdx === undefined
+                                ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                            }`}
+                          >
+                            Antwort prüfen (Verify Answer)
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 3. Vocabulary & Flashcard Section */}
       {activeSection === 'vocab' && (
         <div className="max-w-2xl mx-auto space-y-6 pt-2">
           <div className="flex items-center justify-between">

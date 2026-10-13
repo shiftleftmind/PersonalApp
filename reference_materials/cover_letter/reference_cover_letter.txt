@@ -1,0 +1,22 @@
+07th October, 2026
+
+Hiring Team,
+[Company Name]
+Berlin, Germany
+
+Dear Hiring Team,
+
+I am writing to apply for the [Job Title] position in Berlin. I have 3+ years of professional experience in software testing, with hands-on responsibility for functional, regression and exploratory testing, test-case design, defect analysis and release validation across web, mobile and kiosk applications.
+
+In my current experience, I have tested complex SaaS products, performed full regression cycles before releases, reproduced and documented critical defects, and worked closely with developers to verify fixes and production hotfixes. And I am currently developing my Playwright automation skills with JavaScript/TypeScript.
+
+The opportunity to contribute to the quality of a widely used product [Company Tailored Detail] particularly interests me. I would be glad to bring my structured testing approach, problem-solving skills and attention to detail to [Company Name]'s testing team.
+
+Thank you for considering my application.
+
+Kind regards,
+Karan Joshi
+karan.joshi.87@outlook.com
++49 179 1700714
+Berlin, Germany
+LinkedIn [https://www.linkedin.com/in/qa-karanjoshi] · Portfolio [https://krnjsh87.github.io/] · XING [https://www.xing.com/profile/Karan_Joshi063610]

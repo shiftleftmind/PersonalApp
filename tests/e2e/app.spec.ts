@@ -51,5 +51,11 @@ test.describe('Personal Hub End-to-End Application Workflow', () => {
     await expect(page.getByRole('heading', { name: /System Settings & Materials/i })).toBeVisible();
     await expect(page.getByText(/Reference Materials Directory/i)).toBeVisible();
     await expect(page.getByRole('button', { name: /Copy Path/i })).toBeVisible();
+
+    // 6. Knowledge Base checks (bottom of sidebar panel)
+    await page.getByRole('button', { name: /Knowledge Base & Docs/i }).click();
+    await expect(page.getByRole('heading', { name: /System Knowledge Base Portal/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Playwright & Sandboxes/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /REST APIs/i })).toBeVisible();
   });
 });

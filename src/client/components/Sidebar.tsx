@@ -1,9 +1,9 @@
 import React from 'react';
-import { Briefcase, BookOpen, Terminal, Settings, ChevronLeft, ChevronRight, Sparkles, LucideIcon } from 'lucide-react';
+import { Briefcase, BookOpen, Terminal, Settings, ChevronLeft, ChevronRight, Sparkles, LucideIcon, Compass } from 'lucide-react';
 
 interface SidebarProps {
-  activeTab: 'jobs' | 'german' | 'playwright' | 'settings';
-  setActiveTab: (tab: 'jobs' | 'german' | 'playwright' | 'settings') => void;
+  activeTab: 'jobs' | 'german' | 'playwright' | 'settings' | 'docs';
+  setActiveTab: (tab: 'jobs' | 'german' | 'playwright' | 'settings' | 'docs') => void;
   collapsed: boolean;
   setCollapsed: (collapsed: boolean) => void;
 }
@@ -101,19 +101,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Footer Info */}
-      <div className="p-4 border-t border-slate-800">
+      {/* Footer Knowledge Base Button & Status */}
+      <div className="p-3 border-t border-slate-900 space-y-2">
+        <button
+          onClick={() => setActiveTab('docs')}
+          className={`w-full flex items-center rounded-xl transition-all text-xs font-semibold ${
+            collapsed ? 'justify-center p-3' : 'px-3 py-2.5 justify-between'
+          } ${
+            activeTab === 'docs'
+              ? 'bg-sky-600 text-white shadow-lg shadow-sky-600/20 ring-1 ring-sky-400'
+              : 'bg-slate-900/60 hover:bg-slate-900 text-sky-400 hover:text-sky-300 border border-slate-800'
+          }`}
+          title="Knowledge Base & Documentation"
+        >
+          <div className="flex items-center space-x-2.5">
+            <Compass size={18} className={activeTab === 'docs' ? 'text-white' : 'text-sky-400'} />
+            {!collapsed && <span>Knowledge Base &amp; Docs</span>}
+          </div>
+          {!collapsed && (
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                activeTab === 'docs'
+                  ? 'bg-sky-700 text-white'
+                  : 'bg-sky-950 text-sky-300 border border-sky-800'
+              }`}
+            >
+              KB
+            </span>
+          )}
+        </button>
+
         {!collapsed ? (
-          <div className="bg-slate-900/60 rounded-lg p-3 border border-slate-800/80">
-            <div className="flex items-center space-x-2 text-xs font-medium text-emerald-400">
-              <Sparkles size={14} />
-              <span>Local Workspace Ready</span>
+          <div className="bg-slate-950/80 rounded-lg p-2.5 border border-slate-900">
+            <div className="flex items-center space-x-1.5 text-[11px] font-medium text-emerald-400">
+              <Sparkles size={12} />
+              <span>Berlin QA Hub Active</span>
             </div>
-            <p className="text-[11px] text-slate-500 mt-1">SQLite • Node.js • Gemini API</p>
+            <p className="text-[10px] text-slate-500 mt-0.5">Karan Joshi · Chancenkarte</p>
           </div>
         ) : (
-          <div className="flex justify-center">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" title="Connected" />
+          <div className="flex justify-center pt-1">
+            <div className="w-2 h-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" title="Connected" />
           </div>
         )}
       </div>

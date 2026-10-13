@@ -5,9 +5,10 @@ const JobHunterDashboard = lazy(() => import('./pages/JobHunter/JobHunterDashboa
 const GermanLearningDashboard = lazy(() => import('./pages/GermanLearning/GermanLearningDashboard'));
 const PlaywrightLabDashboard = lazy(() => import('./pages/PlaywrightLab/PlaywrightLabDashboard'));
 const SettingsDashboard = lazy(() => import('./pages/Settings/SettingsDashboard'));
+const KnowledgeBaseDashboard = lazy(() => import('./pages/Docs/KnowledgeBaseDashboard'));
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'jobs' | 'german' | 'playwright' | 'settings'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'german' | 'playwright' | 'settings' | 'docs'>('jobs');
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -30,6 +31,7 @@ export const App: React.FC = () => {
           {activeTab === 'german' && <GermanLearningDashboard />}
           {activeTab === 'playwright' && <PlaywrightLabDashboard />}
           {activeTab === 'settings' && <SettingsDashboard />}
+          {activeTab === 'docs' && <KnowledgeBaseDashboard />}
         </Suspense>
       </main>
     </div>
